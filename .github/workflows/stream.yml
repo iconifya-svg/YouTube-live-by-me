@@ -1,7 +1,5 @@
 name: Loop YouTube Stream
-on:
-  workflow_dispatch: 
-  # Ensure the line above has exactly 2 spaces before 'workflow_dispatch'
+on: [workflow_dispatch] # Triggers manually from the Actions tab
 
 jobs:
   stream:
@@ -10,13 +8,15 @@ jobs:
       - name: Setup yt-dlp
         uses: AnimMouse/setup-yt-dlp@v3
         with:
-          with-ffmpeg: true 
+          with-ffmpeg: true
 
       - name: Start High-Quality Stream
         run: |
+          # Finds the best quality video and audio URLs separately
           VIDEO_URL=$(yt-dlp -f "bestvideo[ext=mp4]/bestvideo" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
           AUDIO_URL=$(yt-dlp -f "bestaudio[ext=m4a]/bestaudio" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
 
+          # Streams and loops exactly twice
           ffmpeg -re -stream_loop 1 -i "$VIDEO_URL" -i "$AUDIO_URL" \
           -map 0:v:0 -map 1:a:0 -c:v copy -c:a copy \
           -f flv "rtmp://a.rtmp.youtube.com{{ secrets.STREAM_KEY }}"
