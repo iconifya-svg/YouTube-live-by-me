@@ -1,25 +1,22 @@
-name: Loop YouTube Twice
+name: Loop YouTube Stream
 on:
-  workflow_dispatch: # This allows you to start it manually from your phone
+  workflow_dispatch: 
+  # Make sure the 'workflow_dispatch:' line has exactly 2 spaces before it
 
 jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          pip install yt-dlp
+      - name: Setup yt-dlp
+        uses: AnimMouse/setup-yt-dlp@v3
+        with:
+          with-ffmpeg: true 
 
-      - name: Start High Quality Stream
+      - name: Start High-Quality Stream
         run: |
-          # Finds the best quality video and audio URLs
-          VIDEO_URL=$(yt-dlp -f "bestvideo[ext=mp4]/bestvideo" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-)
-          AUDIO_URL=$(yt-dlp -f "bestaudio[ext=m4a]/bestaudio" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-)
+          VIDEO_URL=$(yt-dlp -f "bestvideo[ext=mp4]/bestvideo" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
+          AUDIO_URL=$(yt-dlp -f "bestaudio[ext=m4a]/bestaudio" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
 
-          # Streams and loops exactly twice
           ffmpeg -re -stream_loop 1 -i "$VIDEO_URL" -i "$AUDIO_URL" \
           -map 0:v:0 -map 1:a:0 -c:v copy -c:a copy \
           -f flv "rtmp://a.rtmp.youtube.com{{ secrets.STREAM_KEY }}"
-          
