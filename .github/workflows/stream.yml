@@ -1,22 +1,25 @@
 name: Loop YouTube Stream
-on: [workflow_dispatch] # Triggers manually from the Actions tab
+on:
+  workflow_dispatch: # Allows you to start it manually from your phone
 
 jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup yt-dlp
-        uses: AnimMouse/setup-yt-dlp@v3
-        with:
-          with-ffmpeg: true
+      - name: Install Tools
+        # We manually install both tools the standard way to fix the input error
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install yt-dlp
 
       - name: Start High-Quality Stream
         run: |
-          # Finds the best quality video and audio URLs separately
+          # 1. Get the direct URLs for best video and best audio
           VIDEO_URL=$(yt-dlp -f "bestvideo[ext=mp4]/bestvideo" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
           AUDIO_URL=$(yt-dlp -f "bestaudio[ext=m4a]/bestaudio" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
 
-          # Streams and loops exactly twice
+          # 2. Use ffmpeg to combine them and stream
           ffmpeg -re -stream_loop 1 -i "$VIDEO_URL" -i "$AUDIO_URL" \
           -map 0:v:0 -map 1:a:0 -c:v copy -c:a copy \
           -f flv "rtmp://a.rtmp.youtube.com{{ secrets.STREAM_KEY }}"
