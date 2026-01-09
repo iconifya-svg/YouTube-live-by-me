@@ -1,25 +1,30 @@
 name: Loop YouTube Stream
 on:
-  workflow_dispatch: # Allows you to start it manually from your phone
+  workflow_dispatch:
 
 jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Tools
-        # We manually install both tools the standard way to fix the input error
+      - name: Install Tools (FFmpeg, yt-dlp, Node.js)
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          # Install FFmpeg and Node.js (for the JS runtime)
+          sudo apt-get install -y ffmpeg nodejs
+          # Install yt-dlp via pip
           pip install yt-dlp
 
-      - name: Start High-Quality Stream
+      - name: Start Stream (Use cookies workaround)
         run: |
-          # 1. Get the direct URLs for best video and best audio
+          # The key fix: tell yt-dlp to use Node.js as the runtime
+          # and use --no-warnings to keep logs clean
+          export YTDLP_OPTS="--js-runtimes nodejs --no-warnings"
+
+          # 1. Get the direct URLs (using the fixed configuration)
           VIDEO_URL=$(yt-dlp -f "bestvideo[ext=mp4]/bestvideo" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
           AUDIO_URL=$(yt-dlp -f "bestaudio[ext=m4a]/bestaudio" -g "https://www.youtube.com/live/R-xFh2Q64Rc?si=mH_3RBhJuzZOsOn-")
 
-          # 2. Use ffmpeg to combine them and stream
+          # 2. Use ffmpeg to combine them and stream (looping once for two plays)
           ffmpeg -re -stream_loop 1 -i "$VIDEO_URL" -i "$AUDIO_URL" \
           -map 0:v:0 -map 1:a:0 -c:v copy -c:a copy \
           -f flv "rtmp://a.rtmp.youtube.com{{ secrets.STREAM_KEY }}"
